@@ -7,7 +7,9 @@ Mock aprovado: `Site MC Vieira/13-site-novo/exportado/site-mc-vieira-mock-C4.htm
 
 Um site de anúncios de imóveis (venda e aluguel), em português, hospedado na Vercel, que leva o visitante ao WhatsApp do Moisés, (11) 99676-7680. A Tokko sai do site. O site novo é a fonte única dos anúncios.
 
-**Medida de sucesso (combinada antes de construir):** cliques em "Falar com o Moisés", por imóvel. Segundo critério: visitantes únicos e recorrentes, por aparelho.
+**Medidas de sucesso (combinadas antes de construir):**
+- **Principal, não depende de consentimento:** total de cliques em "Falar com o Moisés", por imóvel e por dia. Conta todos os visitantes, inclusive quem recusou o banner. O evento anônimo não leva ID, cookie nem IP. É menos preciso: não separa quem clicou duas vezes de duas pessoas.
+- **Secundária, depende de consentimento:** visitantes únicos e recorrentes, por aparelho. Cobre só quem aceitou o banner, então é um piso.
 
 **Escala:** até cerca de 50 imóveis ativos, cerca de 24 fotos por imóvel (medido em 13 pastas de originais).
 
@@ -115,15 +117,15 @@ Estes três contratos são escritos primeiro, como tipos e esquemas validados, e
 
 | Evento | Campos | Quando |
 |---|---|---|
-| `clique_whatsapp` | `visitante_id`, `codigo`, `origem` (`lista` \| `imovel` \| `flutuante`), `data` (ISO 8601, UTC) | Clique em qualquer botão de WhatsApp |
-| `visualizacao_imovel` | `visitante_id`, `codigo`, `data` | Abertura da página de um imóvel |
+| `clique_whatsapp` | `visitante_id` (opcional), `codigo`, `origem` (`lista` \| `imovel` \| `flutuante`), `data` (ISO 8601, UTC) | Clique em qualquer botão de WhatsApp |
+| `visualizacao_imovel` | `visitante_id` (opcional), `codigo`, `data` | Abertura da página de um imóvel |
 
-Eventos só são enviados se o visitante aceitou o cookie (seção 7).
+O `visitante_id` é **opcional** e só vai no evento se o visitante aceitou o cookie (seção 7). Sem consentimento, o site envia o mesmo evento **sem `visitante_id`** (evento anônimo), só com `codigo`, `origem` e `data`. O total de cliques conta todos os eventos, com ou sem ID. Únicos e recorrentes contam só os eventos com ID.
 
 **Defesa do endpoint `/api/eventos`** (é público, e cada gravação custa):
-- Valida o esquema, exige `visitante_id` em formato UUID e `codigo` de um imóvel existente.
+- Valida o esquema, exige `codigo` de um imóvel existente e, quando houver `visitante_id`, que seja um UUID.
 - Limita a frequência por origem de rede, sem guardar o IP, e descarta user agents de bot.
-- Recusa requisição sem `visitante_id`, porque sem cookie não há evento.
+- Não grava IP, user agent nem qualquer outro dado do visitante no evento.
 
 ## 5. Site público
 
@@ -178,9 +180,10 @@ Eventos só são enviados se o visitante aceitou o cookie (seção 7).
 
 - O site grava, no navegador, um **UUID aleatório** em cookie próprio, com validade de 6 meses, **só após o visitante aceitar** o banner de cookies.
 - Os eventos guardam o `visitante_id`, o código do imóvel, a origem e a data. **Nenhum nome, e-mail, telefone ou IP.**
-- Se o visitante recusar, o site funciona normalmente e nenhum evento é enviado.
+- Se o visitante recusar, o site funciona normalmente e **não grava cookie nem `visitante_id`**. O clique ainda gera um evento anônimo (`codigo`, `origem`, `data`), que não identifica ninguém e alimenta só a medida principal.
+- A política de privacidade descreve essa contagem anônima.
 - Há uma página de política de privacidade em linguagem simples, com a finalidade e o prazo de retenção (6 meses, o mesmo do cookie). Eventos mais antigos são apagados pelo job diário.
-- Limite conhecido: quem recusa, troca de navegador ou limpa os dados conta como novo. O número de recorrentes é um piso.
+- Limite conhecido: quem recusa, troca de navegador ou limpa os dados não entra em únicos e recorrentes, ou conta como novo. Esses números são um piso. O total de cliques não tem esse limite.
 - O texto do banner e da política deve ser revisado por quem responde pela LGPD na M.C. Vieira antes da publicação com domínio próprio.
 
 ## 8. Contrato com a skill "publicar anúncio"
@@ -208,7 +211,7 @@ Só entra no Blob a versão com marca d'água. O original sem marca nunca vai pa
 ## 10. Testes
 
 - **Unidade:** validação dos esquemas, limite de 4 flags, enum fechado das flags (recusa chave de endereço), URL do WhatsApp com acento e `&` codificados, formatação de preço e área, assinatura e expiração do JWT.
-- **Integração:** login com token inválido, de e-mail fora da lista e válido; gravação de flags sem login falha; o JSON público de cada imóvel sem `endereco_completo`; eventos descartados sem consentimento e sob abuso (1.000 envios seguidos não geram 1.000 blobs); gravação concorrente do mesmo anúncio recusada pela checagem de `atualizado_em`; imóvel oculto responde 404; vendido aparece sem botão de contato; jobs de backup e consolidação são idempotentes.
+- **Integração:** login com token inválido, de e-mail fora da lista e válido; gravação de flags sem login falha; o JSON público de cada imóvel sem `endereco_completo`; sem consentimento, o evento é gravado sem `visitante_id` e nenhum cookie é criado; eventos sob abuso (1.000 envios seguidos não geram 1.000 blobs); gravação concorrente do mesmo anúncio recusada pela checagem de `atualizado_em`; imóvel oculto responde 404; vendido aparece sem botão de contato; jobs de backup e consolidação são idempotentes.
 - **End-to-end (Playwright):** navegação como visitante em celular e desktop, filtros na URL, botão do WhatsApp com a mensagem certa, estados vazio e de erro, banner de cookies, flag alterada no painel refletida no site, imóvel marcado como vendido ou ocultado no painel refletido no site, acessibilidade por teclado e contraste (axe).
 - **Visual:** screenshots da home e da página do imóvel contra o mock C4.
 
@@ -232,5 +235,5 @@ Domínio próprio, mapa, favoritos, cadastro de visitantes, a skill em si (spec 
 - Revisão da política de privacidade e do banner por quem responde pela LGPD.
 - Papel `editor`: decidir se Gabriela e Moisés precisam de permissões diferentes.
 - Quem consulta o relatório de cliques, e onde ele aparece.
-- Medida de sucesso e consentimento: quem recusa o banner não gera evento, então os cliques por imóvel são um piso. Avaliar com quem responde pela LGPD um contador agregado de cliques, sem ID nem cookie, para a medida principal.
+- Confirmar com quem responde pela LGPD que o evento anônimo (sem ID, cookie nem IP) dispensa consentimento e que o texto da política o descreve de forma correta.
 - Eventos como um blob por evento custam uma gravação cada (US$ 5 por milhão). A conta é baixa para o volume esperado, mas um job diário deve consolidar os eventos do dia num resumo e apagar os blobs avulsos (apagar é grátis). Se o volume crescer muito, avaliar um banco de eventos.
