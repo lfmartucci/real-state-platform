@@ -22,7 +22,7 @@ export async function tratarLogin(req: Request, s: Servicos, verificarGoogle?: V
       emitir: (email) => emitirSessao(email, authJwtSecret, ttlSegundos),
     });
   } catch (erro) {
-    console.error("[login] falha ao validar com o Google:", erro instanceof Error ? erro.message : String(erro));
+    console.error("[login] falha ao validar com o Google:", erro instanceof Error ? erro.name : "erro desconhecido");
     return respostaErro(502, "falha_upstream", "Não foi possível validar o login agora.");
   }
   const resposta = Response.json(resultado.corpo, { status: resultado.status });

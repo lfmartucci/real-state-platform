@@ -17,6 +17,11 @@ describe("autenticarLogin", () => {
     expect((await autenticarLogin({ credential: "x" }, deps(null))).corpo.erro).toBe("token_invalido");
   });
 
+  it("queda do Google propaga o erro (o handler responde 502)", async () => {
+    const falha = { ...deps(null), verificarGoogle: async () => { throw new Error("rede"); } };
+    await expect(autenticarLogin({ credential: "x" }, falha)).rejects.toThrow("rede");
+  });
+
   it("e-mail não verificado é 401", async () => {
     const resultado = await autenticarLogin({ credential: "x" }, deps({ email: "gabriela@exemplo.com", emailVerificado: false }));
     expect(resultado).toMatchObject({ status: 401, corpo: { erro: "email_nao_verificado" } });
