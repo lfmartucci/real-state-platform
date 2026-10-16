@@ -16,6 +16,22 @@
 
 **Armadilha do Next 16 que esta frente evita:** `notFound()` chamado depois que a resposta começou a ser transmitida (dentro de um `loading.tsx`/Suspense) mantém status **200**. Por isso o `loading.tsx` da lista fica no route group `src/app/(site)/imoveis/(lista)/`, fora do alcance de `src/app/(site)/imoveis/[codigo]/`. Não crie `loading.tsx` em `(site)/` nem em `(site)/imoveis/`.
 
+## Fidelidade ao mock C4 (regra desta frente)
+
+O mock `Site MC Vieira/13-site-novo/exportado/site-mc-vieira-mock-C4.html` foi **aprovado pelo usuário** e é a fonte da verdade visual e de conteúdo das páginas públicas. O objetivo é reproduzi-lo, não reinterpretá-lo. O HTML e o CSS que este plano traz em cada task são ponto de partida: quando divergirem do mock, **vale o mock**.
+
+- **Ler o mock:** o arquivo tem 3,5 MB por causa das fotos embutidas em base64. Gere uma cópia legível (cerca de 10 KB) fora do repositório e leia essa:
+  ```bash
+  python3 -c "import re,sys; s=open(sys.argv[1],encoding='utf-8').read(); open(sys.argv[2],'w').write(re.sub(r'data:[a-z/+\-]+;base64,[A-Za-z0-9+/=]+','data:…',s))" \
+    "/Users/felipemartucci/PycharmProjects/real-state-platform/Site MC Vieira/13-site-novo/exportado/site-mc-vieira-mock-C4.html" /tmp/mock-c4-sem-base64.html
+  ```
+  Todo brief de subagente desta frente (implementador e revisor) leva o caminho do mock e esta seção.
+- **Comparar de verdade:** em cada task que muda tela (1.5, 1.6, 1.7, 1.8), abra o mock e o app em 1440 px e 390 px, capture as duas telas e liste cada diferença (estrutura, textos, tipografia, cores, espaçamentos, estados e comportamentos como o slideshow com Ken Burns e as faixas alternadas).
+- **Divergência exige aprovação explícita do usuário antes de implementar.** Isso inclui divergências forçadas pela técnica (framework, acessibilidade, dado real que não cabe no layout). Peça aprovação com: o que o mock mostra, o que não dá para reproduzir e por quê, opções e recomendação. Sem o "sim", siga o mock. O que o mock não mostra (filtros, estados vazio, carregando, erro, reservado, `/privacidade`) é lacuna, não divergência: desenhe com os tokens e componentes do mock e leve a lista ao usuário para aprovar.
+- **Registro:** diferenças aprovadas vão para `tasks/todo.md` com a data e o que foi aprovado.
+- **Revisão:** o revisor de cada task compara a tela com o mock, não só o código com o plano.
+
+
 ---
 
 ### Task 1.1: Formatação de preço, área, data e campos
@@ -1359,7 +1375,11 @@ Em `eslint.config.mjs`, dentro do array de `defineConfig([...])`, depois de `...
 Run: `npm test -- src/components/site/componentes.test.tsx && npm run typecheck && npm run lint`
 Expected: PASS e sem erros. (O build fica para a Task 1.6, que cria a home.)
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 7: Conferência de fidelidade ao mock C4 (os tokens, fontes, cabeçalho, rodapé e botão do WhatsApp)**
+
+Siga o procedimento de "Fidelidade ao mock C4" (início deste arquivo) para os tokens, fontes, cabeçalho, rodapé e botão do WhatsApp: abra o mock e o app lado a lado em 1440 px e 390 px, compare estrutura, textos, tipografia, cores, espaçamentos e estados, e escreva a lista de diferenças. Diferença sem aprovação do usuário não se commita: pare e peça aprovação com o formato descrito na seção. Registre as aprovadas em `tasks/todo.md`.
+
+- [ ] **Step 8: Commit**
 
 ```bash
 git add apps/site/src/app/layout.tsx apps/site/src/app/globals.css apps/site/eslint.config.mjs "apps/site/src/app/(site)/layout.tsx" apps/site/src/components/site
@@ -1733,7 +1753,11 @@ Expected: home com hero sem fotos (catálogo vazio), texto "Viver bem começa em
 Run: `npm run typecheck && npm run lint && npm run build`
 Expected: sem erros. O build lista `ƒ /` (dinâmica).
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Conferência de fidelidade ao mock C4 (a home)**
+
+Siga o procedimento de "Fidelidade ao mock C4" (início deste arquivo) para a home: abra o mock e o app lado a lado em 1440 px e 390 px, compare estrutura, textos, tipografia, cores, espaçamentos e estados, e escreva a lista de diferenças. Diferença sem aprovação do usuário não se commita: pare e peça aprovação com o formato descrito na seção. Registre as aprovadas em `tasks/todo.md`.
+
+- [ ] **Step 6: Commit**
 
 ```bash
 git add "apps/site/src/app/(site)/page.tsx" "apps/site/src/app/(site)/home.css" apps/site/src/components/site
@@ -2030,7 +2054,11 @@ Expected: sem erros. O build lista `ƒ /imoveis`.
 Com `npm run dev`, abra `http://localhost:3000/imoveis?negocio=aluguel&quartos=3`.
 Expected: título "Imóveis para alugar", filtros com "Alugar" e "3+" selecionados, e a frase do estado vazio "Ainda não há imóveis publicados..." (catálogo local vazio). A verificação com dados fica no e2e da Task 1.10.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Conferência de fidelidade ao mock C4 (a lista `/imoveis`)**
+
+Siga o procedimento de "Fidelidade ao mock C4" (início deste arquivo) para a lista `/imoveis`: abra o mock e o app lado a lado em 1440 px e 390 px, compare estrutura, textos, tipografia, cores, espaçamentos e estados, e escreva a lista de diferenças. O mock pode não ter uma tela de lista com filtros: o que o mock não mostra (filtros, estados vazio e de erro) não é divergência, é lacuna; reuse os tokens, a tipografia e os componentes do mock e liste essas telas para o usuário aprovar. Diferença sem aprovação do usuário não se commita: pare e peça aprovação com o formato descrito na seção. Registre as aprovadas em `tasks/todo.md`.
+
+- [ ] **Step 6: Commit**
 
 ```bash
 git add "apps/site/src/app/(site)/imoveis/(lista)" apps/site/src/components/site/FiltrosImoveis.tsx apps/site/src/components/site/CartaoImovel.tsx
@@ -2308,7 +2336,11 @@ curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/imoveis/nao-e-cod
 
 Expected: `404` nas duas. Pare o `npm run start`.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 4: Conferência de fidelidade ao mock C4 (a página do imóvel)**
+
+Siga o procedimento de "Fidelidade ao mock C4" (início deste arquivo) para a página do imóvel: abra o mock e o app lado a lado em 1440 px e 390 px, compare estrutura, textos, tipografia, cores, espaçamentos e estados, e escreva a lista de diferenças. Diferença sem aprovação do usuário não se commita: pare e peça aprovação com o formato descrito na seção. Registre as aprovadas em `tasks/todo.md`.
+
+- [ ] **Step 5: Commit**
 
 ```bash
 git add "apps/site/src/app/(site)/imoveis/[codigo]" apps/site/src/components/site/PaginaImovel.tsx apps/site/src/components/site/Galeria.tsx apps/site/src/components/site/imovel.css
@@ -2811,12 +2843,12 @@ test.describe("visual", () => {
 });
 ```
 
-- [ ] **Step 7: Rodar o e2e**
+- [ ] **Step 7: Rodar o e2e e fechar a fidelidade**
 
 Run (primeira vez, cria as referências de screenshot): `npm run test:e2e -- --update-snapshots`
 Expected: todos os testes passam; o Playwright grava `e2e/visual.spec.ts-snapshots/*.png`.
 
-Abra `npx playwright show-report` e compare as telas `home` e `imovel-mc003` com o anexo `mock-c4`. Fundo marinho, Playfair nos títulos, faixas alternadas, botão flutuante verde. Registre divergências visuais relevantes antes de commitar as referências.
+Abra `npx playwright show-report` e compare as telas `home` e `imovel-mc003` com o anexo `mock-c4`. Fundo marinho, Playfair nos títulos, faixas alternadas, botão flutuante verde. Registre divergências visuais relevantes antes de commitar as referências. Esta comparação é o fechamento, não a primeira conferência: cada tela já foi comparada com o mock nas Tasks 1.5, 1.6, 1.7 e 1.8. Qualquer diferença restante sem aprovação registrada em `tasks/todo.md` impede o commit das referências de screenshot.
 
 Run (segunda vez, valida contra as referências): `npm run test:e2e`
 Expected: PASS em `celular` e `desktop`.

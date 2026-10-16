@@ -63,6 +63,7 @@ Toda task inclui, implicitamente, estas regras. Valores copiados do spec.
 - O store público contém **só `.webp`**. O endereço nunca aparece em log, histórico, evento ou resposta de rota pública.
 - Segredos só em variáveis da Vercel (e `.env.local`, ignorado pelo git, para dev).
 - Toda query SQL eventual segue a convenção de nomes completos do `CLAUDE.md` (não há SQL previsto).
+- **Mock C4 aprovado é a fonte visual do site público** (`Site MC Vieira/13-site-novo/exportado/site-mc-vieira-mock-C4.html`). Reprodução fiel; divergência só com aprovação explícita do usuário. Procedimento na seção "Fidelidade ao mock C4" de `frente-1-site-publico.md`; as frentes 2 e 4 reusam os tokens do mock em painel, banner e documento.
 - Nunca `git push`, `gh pr create`, `--no-verify`.
 
 ## Review Focus
