@@ -1,8 +1,9 @@
 import { z } from "zod";
+import { caminhos } from "@/lib/armazem/caminhos";
 import { ErroConflito, ErroJaExiste } from "@/lib/armazem/tipos";
 import { autenticar, nomeDoAtor, type Ator } from "@/lib/auth/guarda";
 import { CodigoSchema, REGEX_CODIGO } from "@/lib/contratos/comum";
-import { ImovelEntradaSchema, type Imovel, type ImovelEntrada } from "@/lib/contratos/imovel";
+import { ImovelEntradaSchema, LapideSchema, type Imovel, type ImovelEntrada } from "@/lib/contratos/imovel";
 import { aplicarGravacao } from "@/lib/dominio/regras";
 import {
   gravarEndereco,
@@ -149,4 +150,51 @@ export async function tratarAtualizarImovel(req: Request, s: Servicos, codigo: s
   }
   await s.revalidar("imoveis");
   return respostaImovel(resultado.imovel, etag);
+}
+
+const CorpoExclusao = z.strictObject({ confirmacao: z.string() });
+
+async function apagarRestos(s: Servicos, codigo: string): Promise<void> {
+  await s.armazem.apagar([caminhos.endereco(codigo), caminhos.reserva(codigo)]);
+  await s.fotos.apagar(await s.fotos.listar(caminhos.pastaFotos(codigo)));
+}
+
+/** Só rascunho, só painel, com o código digitado. Os backups guardam os JSON por 30 dias; as fotos não voltam (spec 6). */
+export async function tratarExcluirImovel(req: Request, s: Servicos, codigo: string): Promise<Response> {
+  const ator = autenticar(req, s.config, { aceitaSkill: false });
+  if (ator instanceof Response) return ator;
+  if (!REGEX_CODIGO.test(codigo)) return naoEncontrado();
+  const ifMatch = req.headers.get("if-match");
+  if (!ifMatch) return respostaErro(428, "etag_ausente", "Envie o cabeçalho If-Match com o ETag da última leitura.");
+  const leitura = await lerCorpoJson(req, 1_000);
+  if (!leitura.ok) return leitura.resposta;
+  const pedido = CorpoExclusao.safeParse(leitura.corpo);
+  if (!pedido.success || pedido.data.confirmacao !== codigo) {
+    return respostaErro(422, "confirmacao_invalida", `Digite ${codigo} para confirmar a exclusão.`);
+  }
+
+  const lido = await lerImovel(s.armazem, codigo);
+  if (!lido) {
+    // Exclusão que parou no meio: termina de limpar o que sobrou.
+    if (await lerLapide(s.armazem, codigo)) {
+      await apagarRestos(s, codigo);
+      return Response.json({ excluido: codigo });
+    }
+    return naoEncontrado();
+  }
+  if (lido.imovel.publicacao !== "rascunho") return respostaErro(422, "so_rascunho", "Retire o imóvel do ar antes de excluir.");
+  if (lido.etag !== ifMatch) return respostaErro(409, "conflito", MENSAGEM_CONFLITO);
+
+  // A lápide vem primeiro: mesmo que algo falhe depois, o código nunca volta a ser usado.
+  const lapide = LapideSchema.parse({ codigo, excluido_em: s.agora().toISOString(), por: nomeDoAtor(ator) });
+  await s.armazem.gravar(caminhos.lapide(codigo), lapide);
+  try {
+    await s.armazem.apagar([caminhos.imovel(codigo)], { ifMatch });
+  } catch (erro) {
+    if (erro instanceof ErroConflito) return respostaErro(409, "conflito", MENSAGEM_CONFLITO);
+    throw erro;
+  }
+  await apagarRestos(s, codigo);
+  await s.revalidar("imoveis");
+  return Response.json({ excluido: codigo });
 }

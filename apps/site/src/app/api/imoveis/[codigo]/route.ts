@@ -1,4 +1,4 @@
-import { tratarAtualizarImovel, tratarLerImovel } from "@/lib/api/imoveis";
+import { tratarAtualizarImovel, tratarExcluirImovel, tratarLerImovel } from "@/lib/api/imoveis";
 import { servicos } from "@/lib/servicos";
 
 interface Contexto {
@@ -11,4 +11,8 @@ export async function GET(req: Request, { params }: Contexto) {
 
 export async function PUT(req: Request, { params }: Contexto) {
   return tratarAtualizarImovel(req, servicos(), (await params).codigo);
+}
+
+export async function DELETE(req: Request, { params }: Contexto) {
+  return tratarExcluirImovel(req, servicos(), (await params).codigo);
 }
