@@ -4,7 +4,7 @@ import { cadastrar } from "@/testes/cadastro";
 import { entradaDeExemplo, fotosDeExemplo } from "@/testes/fixtures";
 import { requisicao } from "@/testes/requisicoes";
 import { criarServicosDeTeste } from "@/testes/servicos-de-teste";
-import { tratarCriarImovel, tratarExcluirImovel, tratarLerImovel, tratarReservarCodigo } from "./imoveis";
+import { tratarAtualizarImovel, tratarCriarImovel, tratarExcluirImovel, tratarLerImovel, tratarReservarCodigo } from "./imoveis";
 
 const excluir = (s: Awaited<ReturnType<typeof criarServicosDeTeste>>, codigo: string, etag: string, confirmacao = codigo, autenticacao: "admin" | "skill" = "admin") =>
   tratarExcluirImovel(
@@ -82,6 +82,26 @@ describe("DELETE /api/imoveis/:codigo", () => {
     expect((await base.armazem.ler(caminhos.imovel(codigo)))?.dados).toEqual(novoDados);
   });
 
+  it("dois DELETE concorrentes com o mesmo ETag: a lápide continua e o código não volta (C1)", async () => {
+    const s = await criarServicosDeTeste();
+    const { codigo, etag } = await cadastrar(s, { publicacao: "rascunho" });
+    const respostas = await Promise.all([excluir(s, codigo, etag), excluir(s, codigo, etag)]);
+    expect(respostas.map((resposta) => resposta.status).sort()).toEqual([200, 409]);
+    expect(await s.armazem.ler(caminhos.lapide(codigo))).not.toBeNull();
+    expect((await s.armazem.listar(`imoveis/${codigo}/`)).map((item) => item.caminho)).toContain(caminhos.lapide(codigo));
+    expect((await tratarLerImovel(requisicao("GET", `/api/imoveis/${codigo}`), s, codigo)).status).toBe(410);
+  });
+
+  it("PUT em código excluído responde 410 codigo_excluido (I2)", async () => {
+    const s = await criarServicosDeTeste();
+    const { codigo, etag } = await cadastrar(s, { publicacao: "rascunho" });
+    await excluir(s, codigo, etag);
+    const corpo = { imovel: entradaDeExemplo({ fotos: fotosDeExemplo(codigo) }) };
+    const resposta = await tratarAtualizarImovel(requisicao("PUT", `/api/imoveis/${codigo}`, { corpo, cabecalhos: { "if-match": etag } }), s, codigo);
+    expect(resposta.status).toBe(410);
+    expect((await resposta.json()).erro).toBe("codigo_excluido");
+  });
+
   it("retoma exclusão que parou depois da lápide: imóvel ausente, restos são apagados", async () => {
     const s = await criarServicosDeTeste();
     const { codigo, etag } = await cadastrar(s, { publicacao: "rascunho" }, { endereco_completo: "Rua Um, 100, Centro" });
@@ -94,6 +114,7 @@ describe("DELETE /api/imoveis/:codigo", () => {
     expect(await s.armazem.ler(caminhos.reserva(codigo))).toBeNull();
     expect(await s.fotos.listar(caminhos.pastaFotos(codigo))).toEqual([]);
     expect(await s.armazem.ler(caminhos.lapide(codigo))).not.toBeNull();
+    expect(s.tagsRevalidadas).toContain("imoveis");
   });
 
   it("falha no meio da limpeza das fotos: repetir o DELETE conclui a exclusão", async () => {
@@ -112,6 +133,7 @@ describe("DELETE /api/imoveis/:codigo", () => {
     const s = { ...base, fotos };
     // Erro não tratado no handler: o Next responde 500, como nas outras rotas.
     await expect(excluir(s, codigo, etag)).rejects.toThrow("falha simulada");
+    expect(base.tagsRevalidadas).toContain("imoveis");
     expect(await base.armazem.ler(caminhos.imovel(codigo))).toBeNull();
     expect(await base.armazem.ler(caminhos.lapide(codigo))).not.toBeNull();
     expect((await excluir(s, codigo, etag)).status).toBe(200);

@@ -130,7 +130,9 @@ export async function tratarAtualizarImovel(req: Request, s: Servicos, codigo: s
   if (!pedido.success) return respostaErro(400, "corpo_invalido", "Envie { imovel, endereco_completo? }.", { detalhes: detalhesZod(pedido.error) });
 
   const lido = await lerImovel(s.armazem, codigo);
-  if (!lido) return naoEncontrado();
+  if (!lido) {
+    return (await lerLapide(s.armazem, codigo)) ? respostaErro(410, "codigo_excluido", "Este imóvel foi excluído.") : naoEncontrado();
+  }
   if (lido.etag !== ifMatch) return respostaErro(409, "conflito", MENSAGEM_CONFLITO);
 
   const validacao = await validarEntrada(pedido.data.imovel, codigo, s);
@@ -177,6 +179,7 @@ export async function tratarExcluirImovel(req: Request, s: Servicos, codigo: str
   if (!lido) {
     // Exclusão que parou no meio: termina de limpar o que sobrou.
     if (await lerLapide(s.armazem, codigo)) {
+      await s.revalidar("imoveis");
       await apagarRestos(s, codigo);
       return Response.json({ excluido: codigo });
     }
@@ -192,13 +195,15 @@ export async function tratarExcluirImovel(req: Request, s: Servicos, codigo: str
     await s.armazem.apagar([caminhos.imovel(codigo)], { ifMatch });
   } catch (erro) {
     if (erro instanceof ErroConflito) {
-      // O imóvel continua no ar: a lápide não pode sobrar, senão o código ficaria excluído com imóvel vivo.
-      await s.armazem.apagar([caminhos.lapide(codigo)]);
+      // Só desfaz a lápide se o imóvel continua no ar (outro PUT mudou o ETag). Se ele sumiu, outra
+      // exclusão venceu a corrida: a lápide é dela e precisa ficar, senão o código seria reaproveitado.
+      if (await lerImovel(s.armazem, codigo)) await s.armazem.apagar([caminhos.lapide(codigo)]);
       return respostaErro(409, "conflito", MENSAGEM_CONFLITO);
     }
     throw erro;
   }
-  await apagarRestos(s, codigo);
+  // Revalida já: o imóvel saiu do ar, mesmo que a limpeza abaixo falhe e o DELETE precise ser repetido.
   await s.revalidar("imoveis");
+  await apagarRestos(s, codigo);
   return Response.json({ excluido: codigo });
 }
