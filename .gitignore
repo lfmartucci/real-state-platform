@@ -1,0 +1,5 @@
+.DS_Store
+# Material de marca e fotos originais: fica fora do git (decisão 8 do spec). Logos usados pelo app são copiados para apps/site/public/marca/.
+Site MC Vieira/
+# Scratch do workspace de agentes
+.superpowers/
