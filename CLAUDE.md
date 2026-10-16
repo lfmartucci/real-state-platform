@@ -6,8 +6,6 @@
 
 ## 🧱 Projeto
 
-> Preencher assim que a stack for definida. Mantenha curto — o que não dá pra derivar do código.
-
 - **O que é:** site de imóveis da M.C. Vieira (venda e aluguel) que leva o visitante ao WhatsApp do Moisés; painel `/admin` para a Gabriela e o Moisés; API única de gravação usada pela skill "publicar imóvel".
 - **Stack:** Next.js 16 (App Router) + TypeScript, zod, Vercel Blob (store privado para JSON, público para fotos), Vercel (plano Pro, time `luiz-martucci's projects`), Vitest e Playwright.
 - **Comandos (em `apps/site/`):** `npm install` · `npm run dev` · `npm test` · `npm run test:e2e` · `npm run lint` · `npm run typecheck` · `npm run build`.

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { caminhos } from "@/lib/armazem/caminhos";
-import { ErroJaExiste, type ArmazemJson, type OpcoesGravacao } from "@/lib/armazem/tipos";
+import { ErroJaExiste, ErroJsonInvalido, type ArmazemJson, type OpcoesGravacao } from "@/lib/armazem/tipos";
 import { REGEX_CODIGO } from "@/lib/contratos/comum";
 import {
   EnderecoSchema,
@@ -38,7 +38,14 @@ export async function listarImoveis(armazem: ArmazemJson): Promise<Imovel[]> {
   const arquivos = (await armazem.listar(caminhos.pastaImoveis)).filter((item) => item.caminho.endsWith("/imovel.json"));
   const lidos = await Promise.all(
     arquivos.map(async (item) => {
-      const objeto = await armazem.ler(item.caminho);
+      let objeto;
+      try {
+        objeto = await armazem.ler(item.caminho);
+      } catch (erro) {
+        if (!(erro instanceof ErroJsonInvalido)) throw erro;
+        console.error(`[catalogo] ${item.caminho} não é JSON válido; ignorado na listagem`);
+        return null;
+      }
       if (!objeto) return null;
       const resultado = ImovelSchema.safeParse(objeto.dados);
       if (!resultado.success) {
@@ -95,11 +102,15 @@ export async function reservarCodigo(armazem: ArmazemJson, contexto: { agora: Da
     const reserva = ReservaSchema.parse({ codigo, reservado_em: contexto.agora.toISOString(), por: contexto.por });
     try {
       await armazem.gravar(caminhos.reserva(codigo), reserva, { criarSomente: true });
-      return codigo;
     } catch (erro) {
       if (!(erro instanceof ErroJaExiste)) throw erro;
       minimo = numeroDoCodigo(codigo) + 1;
+      continue;
     }
+    // A listagem pode estar atrasada; leitura de um arquivo é sempre atual. Código com lápide ou imóvel nunca se reutiliza.
+    const [lapide, imovel] = await Promise.all([armazem.ler(caminhos.lapide(codigo)), armazem.ler(caminhos.imovel(codigo))]);
+    if (!lapide && !imovel) return codigo;
+    minimo = numeroDoCodigo(codigo) + 1;
   }
   throw new Error(`Não foi possível reservar um código em ${TENTATIVAS_DE_RESERVA} tentativas`);
 }

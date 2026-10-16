@@ -1,9 +1,10 @@
-import { mkdtemp } from "node:fs/promises";
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { ArmazemFotosArquivo, ArmazemJsonArquivo } from "./arquivo";
 import { testarContratoArmazemJson } from "./contrato-armazem";
+import { ErroJsonInvalido } from "./tipos";
 
 const diretorioTemporario = () => mkdtemp(path.join(tmpdir(), "mcv-armazem-"));
 
@@ -13,6 +14,17 @@ describe("ArmazemJsonArquivo", () => {
   it("recusa caminho com ..", async () => {
     const armazem = new ArmazemJsonArquivo(await diretorioTemporario());
     await expect(armazem.gravar("../fora.json", {})).rejects.toThrow("Caminho inválido");
+  });
+
+  it("JSON malformado vira ErroJsonInvalido sem ecoar o conteúdo", async () => {
+    const raiz = await diretorioTemporario();
+    await mkdir(path.join(raiz, "imoveis/MC001"), { recursive: true });
+    await writeFile(path.join(raiz, "imoveis/MC001/endereco.json"), "Rua das Flores, 10", "utf8");
+    const erro = await new ArmazemJsonArquivo(raiz).ler("imoveis/MC001/endereco.json").catch((e: unknown) => e);
+    expect(erro).toBeInstanceOf(ErroJsonInvalido);
+    expect((erro as Error).message).toContain("imoveis/MC001/endereco.json");
+    expect((erro as Error).message).not.toContain("Rua");
+    expect((erro as Error).cause).toBeUndefined();
   });
 });
 

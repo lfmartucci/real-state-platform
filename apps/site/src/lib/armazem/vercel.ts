@@ -2,6 +2,7 @@ import { BlobError, BlobPreconditionFailedError, copy, del, get, list, put } fro
 import {
   ErroConflito,
   ErroJaExiste,
+  interpretarJson,
   validarEnvioDeFoto,
   type ArmazemFotos,
   type ArmazemJson,
@@ -45,7 +46,7 @@ export class ArmazemJsonVercel implements ArmazemJson {
     const resultado = await get(caminho, { access: "private", token: this.token, useCache: false });
     if (!resultado || resultado.statusCode !== 200) return null;
     const texto = await new Response(resultado.stream).text();
-    return { dados: JSON.parse(texto), etag: resultado.blob.etag };
+    return { dados: interpretarJson(texto, caminho), etag: resultado.blob.etag };
   }
 
   async gravar(caminho: string, dados: unknown, opcoes: OpcoesGravacao = {}): Promise<{ etag: string }> {

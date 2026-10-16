@@ -4,6 +4,7 @@ import path from "node:path";
 import {
   ErroConflito,
   ErroJaExiste,
+  interpretarJson,
   validarEnvioDeFoto,
   type ArmazemFotos,
   type ArmazemJson,
@@ -64,7 +65,7 @@ export class ArmazemJsonArquivo implements ArmazemJson {
   async ler(caminho: string): Promise<ObjetoJson | null> {
     try {
       const texto = await readFile(resolverDentro(this.raiz, caminho), "utf8");
-      return { dados: JSON.parse(texto), etag: etagDe(texto) };
+      return { dados: interpretarJson(texto, caminho), etag: etagDe(texto) };
     } catch (erro) {
       if (codigoDoErro(erro) === "ENOENT") return null;
       throw erro;

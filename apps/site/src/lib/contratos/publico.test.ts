@@ -26,7 +26,8 @@ describe("paraPublico", () => {
   });
 
   it("não inventa campos ausentes", () => {
-    const { vagas: _vagas, ...semVagas } = imovelDeExemplo();
+    const semVagas = { ...imovelDeExemplo() };
+    delete semVagas.vagas;
     expect(paraPublico(semVagas)).not.toHaveProperty("vagas");
   });
 });

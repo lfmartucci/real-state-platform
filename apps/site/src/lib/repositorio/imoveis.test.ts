@@ -1,4 +1,4 @@
-import { mkdtemp } from "node:fs/promises";
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -41,6 +41,20 @@ describe("repositório de imóveis", () => {
     const lista = await listarImoveis(armazem);
     expect(lista.map((imovel) => imovel.codigo)).toEqual(["MC001", "MC002"]);
     expect(erro).toHaveBeenCalledWith(expect.stringContaining("imoveis/MC003/imovel.json"));
+    erro.mockRestore();
+  });
+
+  it("JSON malformado não derruba a listagem nem vaza conteúdo no log", async () => {
+    const raiz = await mkdtemp(path.join(tmpdir(), "mcv-repo-json-"));
+    const armazem = new ArmazemJsonArquivo(raiz);
+    await gravarImovel(armazem, imovelDeExemplo({ codigo: "MC001" }));
+    await mkdir(path.join(raiz, "imoveis/MC002"), { recursive: true });
+    await writeFile(path.join(raiz, caminhos.imovel("MC002")), "Rua das Flores, 10", "utf8");
+    const erro = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const lista = await listarImoveis(armazem);
+    expect(lista.map((imovel) => imovel.codigo)).toEqual(["MC001"]);
+    expect(erro).toHaveBeenCalledWith(expect.stringContaining("imoveis/MC002/imovel.json"));
+    expect(JSON.stringify(erro.mock.calls)).not.toContain("Rua");
     erro.mockRestore();
   });
 
@@ -87,5 +101,19 @@ describe("reserva de código", () => {
       copiar: (de, para) => armazem.copiar(de, para),
     };
     expect(await reservarCodigo(listagemAtrasada, { agora, por: "skill" })).toBe("MC002");
+  });
+
+  it("não reutiliza código com lápide mesmo sem reserva e com a listagem atrasada", async () => {
+    const armazem = await novoArmazem();
+    await armazem.gravar(caminhos.lapide("MC002"), { codigo: "MC002", excluido_em: agora.toISOString(), por: "skill" });
+    const listagemAtrasada: ArmazemJson = {
+      ler: (caminho) => armazem.ler(caminho),
+      gravar: (caminho, dados, opcoes) => armazem.gravar(caminho, dados, opcoes),
+      listar: (prefixo) => armazem.listar(prefixo),
+      listarPastas: async () => ["imoveis/MC001/"],
+      apagar: (lista, opcoes) => armazem.apagar(lista, opcoes),
+      copiar: (de, para) => armazem.copiar(de, para),
+    };
+    expect(await reservarCodigo(listagemAtrasada, { agora, por: "skill" })).toBe("MC003");
   });
 });
