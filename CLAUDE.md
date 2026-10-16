@@ -8,10 +8,10 @@
 
 > Preencher assim que a stack for definida. Mantenha curto — o que não dá pra derivar do código.
 
-- **O que é:** plataforma de real estate (imóveis) — _descrever em 1–2 linhas o problema e o usuário-final_.
-- **Stack:** _linguagem, framework, banco, infra_.
-- **Comandos:** _instalar, rodar, testar, lint, build_.
-- **Estrutura:** _pastas principais e o que vive em cada uma_.
+- **O que é:** site de imóveis da M.C. Vieira (venda e aluguel) que leva o visitante ao WhatsApp do Moisés; painel `/admin` para a Gabriela e o Moisés; API única de gravação usada pela skill "publicar imóvel".
+- **Stack:** Next.js 16 (App Router) + TypeScript, zod, Vercel Blob (store privado para JSON, público para fotos), Vercel (plano Pro, time `luiz-martucci's projects`), Vitest e Playwright.
+- **Comandos (em `apps/site/`):** `npm install` · `npm run dev` · `npm test` · `npm run test:e2e` · `npm run lint` · `npm run typecheck` · `npm run build`.
+- **Estrutura:** `apps/site/src/lib/` regras e contratos (testados sem servidor); `apps/site/src/app/` páginas e rotas finas; `apps/site/scripts/` CLI da skill e verificações; `docs/` spec, plano, ADRs e verificações.
 
 
 ## 🎯 Regras de ouro
@@ -205,6 +205,17 @@ Padrões cristalizados como regras. **Casos datados (histórico narrativo) ficam
 - **`git filter-repo` destrói refs locais.** Sempre criar backup remoto antes de rewrite de histórico.
 
 ---
+
+## 🔁 Como transferir (para o Moisés ou outra pessoa)
+
+| Recurso | Onde vive | Como transferir |
+|---|---|---|
+| Projeto `mc-vieira-site` | Vercel, time `luiz-martucci's projects` | Settings → Transfer Project para o time do novo dono |
+| Stores `mcv-privado` e `mcv-publico` | Vercel Blob, mesmo time | Ver `docs/verificacoes/2026-10-frente-0-blob.md`. Se não acompanharem a transferência: criar stores no time novo e copiar com backup + script de cópia |
+| Variáveis (`AUTH_*`, `GOOGLE_CLIENT_ID`, `SKILL_API_SECRET`, `CRON_SECRET`, `FOTOS_ORIGEM`, tokens do Blob) | Vercel, ambiente do projeto | Recriar no time novo se não vierem; gerar segredos novos (`openssl rand -base64 32`) |
+| Cron diário `/api/cron/diario` | `apps/site/vercel.json` | Vai com o código |
+| OAuth Client ID | Projeto GCP `mc-vieira-site`, conta Google pessoal do Luiz | IAM → adicionar o novo dono como Owner |
+| Domínio `mcvieiraimoveis.com.br` | Registro.br, titular Moisés | Já é do Moisés; só apontar o DNS para o projeto |
 
 ## 📚 Referências
 
