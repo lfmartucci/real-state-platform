@@ -1,5 +1,5 @@
 import { BlobError, BlobPreconditionFailedError } from "@vercel/blob";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import { testarContratoArmazemJson } from "./contrato-armazem";
 import { ErroConflito, ErroJaExiste } from "./tipos";
 import { ArmazemJsonVercel, traduzirErroBlob } from "./vercel";
@@ -22,9 +22,19 @@ describe("traduzirErroBlob", () => {
 const tokenDeTeste = process.env.BLOB_TESTE_READ_WRITE_TOKEN;
 if (tokenDeTeste) {
   let rodada = 0;
+  const prefixosCriados: string[] = [];
+  // O store de teste não deve acumular lixo entre execuções.
+  afterAll(async () => {
+    const armazem = new ArmazemJsonVercel(tokenDeTeste);
+    for (const prefixo of prefixosCriados) {
+      const restantes = await armazem.listar(prefixo);
+      if (restantes.length > 0) await armazem.apagar(restantes.map((item) => item.caminho));
+    }
+  });
   testarContratoArmazemJson("vercel (store de teste)", async () => {
     rodada += 1;
     const prefixo = `contrato-${Date.now()}-${rodada}/`;
+    prefixosCriados.push(prefixo);
     const armazem = new ArmazemJsonVercel(tokenDeTeste);
     return {
       ler: (caminho) => armazem.ler(prefixo + caminho),
