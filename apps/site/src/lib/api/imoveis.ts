@@ -191,7 +191,11 @@ export async function tratarExcluirImovel(req: Request, s: Servicos, codigo: str
   try {
     await s.armazem.apagar([caminhos.imovel(codigo)], { ifMatch });
   } catch (erro) {
-    if (erro instanceof ErroConflito) return respostaErro(409, "conflito", MENSAGEM_CONFLITO);
+    if (erro instanceof ErroConflito) {
+      // O imóvel continua no ar: a lápide não pode sobrar, senão o código ficaria excluído com imóvel vivo.
+      await s.armazem.apagar([caminhos.lapide(codigo)]);
+      return respostaErro(409, "conflito", MENSAGEM_CONFLITO);
+    }
     throw erro;
   }
   await apagarRestos(s, codigo);
