@@ -22,6 +22,7 @@
 6. **Minimal Impact** — toque só no necessário; refactor de oportunidade só se no plano.
 7. **Não infira** — antes de propor solução, valide com evidência (ver [Aprendizados](#-aprendizados-evergreen)).
 8. **Sinalize riscos por escrito sem necessariamente parar** — registre em `tasks/todo.md`.
+9. **Template/mock aprovado é contrato visual.** Reproduza fielmente; divergência só com aprovação explícita do usuário (ver [Templates e mocks aprovados](#-templates-e-mocks-aprovados-reprodução-fiel)).
 
 
 ## 🚨 Quando escalar ao usuário (raro)
@@ -31,6 +32,7 @@ Escale quando:
 - Decisão **irreversível** (deletar dados, breaking change em API pública, schema em produção).
 - Risco **financeiro/operacional** alto (gastos de API, toque em produção, deletar branch protegido).
 - Ambiguidade fundamental no problema (não na solução).
+- **Divergência de um template/mock aprovado** (ver [Templates e mocks aprovados](#-templates-e-mocks-aprovados-reprodução-fiel)).
 
 **Não escale** por:
 - Escolha entre opções técnicas equivalentes.
@@ -42,6 +44,17 @@ Escale quando:
 Mensagem estruturada quando escalar: **contexto + opções + recomendação + impacto de cada caminho**.
 
 ---
+
+## 🎨 Templates e mocks aprovados: reprodução fiel
+
+Quando existe um template HTML, mock ou protótipo **aprovado pelo usuário**, ele é a fonte da verdade visual e de conteúdo. O trabalho é reproduzi-lo, não reinterpretá-lo.
+
+- **Reproduza fielmente:** estrutura, hierarquia, textos, espaçamentos, tipografia, cores, estados e comportamentos que o template mostra. Em dúvida, copie o template.
+- **Não "melhore" por conta própria:** nada de trocar componente, reordenar seção, mudar texto, cor, espaçamento ou fonte porque "ficaria melhor" ou porque o framework facilita de outro jeito.
+- **Divergência exige aprovação explícita do usuário, antes de implementar.** Isso vale inclusive para divergências forçadas pela técnica (limitação do framework, acessibilidade, performance, dado real que não cabe no layout). Mensagem: o que o template mostra, o que não dá para reproduzir e por quê, as opções e a recomendação. Sem "sim" do usuário, siga o template.
+- **Registre as divergências aprovadas** em `tasks/todo.md` (ou na spec/plano da frente), com a data e o que o usuário aprovou, para não serem revertidas nem repetidas como dúvida.
+- **Verificação:** compare a tela construída com o template lado a lado (screenshot via Playwright, em desktop e celular) e liste cada diferença encontrada. Não declare `done` com diferença não aprovada.
+- Subagentes recebem o caminho do template no brief e esta regra; o revisor confere a fidelidade contra o template, não só contra o código.
 
 ## ✅ Verificação antes de "Done"
 
