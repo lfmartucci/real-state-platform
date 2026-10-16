@@ -93,6 +93,7 @@ describe("destaques", () => {
     const emDestaque = imovelDeExemplo({ destaque: true });
     const retirado = gravado(aplicarGravacao(ctx({ atual: emDestaque, entrada: entradaDeExemplo({ destaque: true, publicacao: "rascunho" }), destaquesDeOutros: 4 })));
     expect(retirado.destaque).toBe(false);
+    expect(retirado.historico).toContainEqual(expect.objectContaining({ campo: "publicacao", de: "publicado", para: "rascunho" }));
     // Com a vaga livre, outro imóvel publicado pode ser destacado (agora são 4 outros com destaque).
     const outro = imovelDeExemplo({ codigo: "MC002", destaque: false });
     const destacado = aplicarGravacao(ctx({ codigo: "MC002", atual: outro, entrada: entradaDeExemplo({ destaque: true }), destaquesDeOutros: 4 }));
